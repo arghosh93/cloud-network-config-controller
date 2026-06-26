@@ -276,23 +276,32 @@ func (a *AWS) getSubnet(networkInterface *ec2.InstanceNetworkInterface) (*net.IP
 	var v4Subnet, v6Subnet *net.IPNet
 	subnet := describeOutput.Subnets[0]
 	if subnet.CidrBlock != nil && *subnet.CidrBlock != "" {
-		_, subnet, err := net.ParseCIDR(*subnet.CidrBlock)
+		_, v4Net, err := net.ParseCIDR(*subnet.CidrBlock)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error: unable to parse IPv4 subnet, err: %v", err)
 		}
-		v4Subnet = subnet
+		v4Subnet = v4Net
 	}
 
-	// I don't know what it means to have several IPv6 CIDR blocks defined for
-	// one subnet, specially given that you can only have one IPv4 CIDR block
-	// defined...¯\_(ツ)_/¯
-	// Let's just pick the first.
-	if len(subnet.Ipv6CidrBlockAssociationSet) > 0 && subnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock != nil && *subnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock != "" {
-		_, subnet, err := net.ParseCIDR(*subnet.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
+	// A subnet can have multiple IPv6 CIDR block associations (e.g., a previous
+	// "disassociated" one and a current "associated" one). On dualstack AWS clusters
+	// after subnet CIDR changes, picking the wrong (stale) CIDR causes egress IP
+	// assignment to fail because OVN-Kubernetes selects IPs from the wrong range.
+	// Always select the first association in "associated" state.
+	for _, assoc := range subnet.Ipv6CidrBlockAssociationSet {
+		if assoc.Ipv6CidrBlock == nil || *assoc.Ipv6CidrBlock == "" {
+			continue
+		}
+		if assoc.Ipv6CidrBlockState == nil || assoc.Ipv6CidrBlockState.State == nil ||
+			*assoc.Ipv6CidrBlockState.State != ec2.SubnetCidrBlockStateCodeAssociated {
+			continue
+		}
+		_, v6Net, err := net.ParseCIDR(*assoc.Ipv6CidrBlock)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error: unable to parse IPv6 subnet, err: %v", err)
 		}
-		v6Subnet = subnet
+		v6Subnet = v6Net
+		break
 	}
 
 	return v4Subnet, v6Subnet, nil
