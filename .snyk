@@ -20,3 +20,7 @@ exclude:
     - vendor/github.com/openshift/api/config/v1/types_oauth.go
     - vendor/github.com/Azure/azure-sdk-for-go/sdk/azidentity/username_password_credential.go
     - vendor/github.com/aws/aws-sdk-go/service/sts/api.go
+    - vendor/github.com/gofrs/uuid/v5/generator.go
+    - vendor/sigs.k8s.io/controller-runtime/pkg/log/log.go
+    - vendor/github.com/aws/aws-sdk-go/aws/endpoints/dep_service_ids.go
+    - vendor/github.com/google/s2a-go/internal/v2/tlsconfigstore/tlsconfigstore.go
