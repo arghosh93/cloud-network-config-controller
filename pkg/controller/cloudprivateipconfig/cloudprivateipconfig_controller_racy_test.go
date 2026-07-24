@@ -33,7 +33,7 @@ type FakeRacyCloudPrivateIPConfigController struct {
 
 func NewFakeRacyCloudPrivateIPConfigController(delayCompletion time.Duration) *FakeRacyCloudPrivateIPConfigController {
 
-	fakeCloudNetworkClient := fakecloudnetworkclientset.NewSimpleClientset()
+	fakeCloudNetworkClient := fakecloudnetworkclientset.NewClientset()
 	fakeKubeClient := fakekubeclient.NewSimpleClientset([]runtime.Object{&nodeA, &nodeB, &nodeC}...)
 	fakeCloudProvider := cloudprovider.NewFakeCloudProvider(false, false, false, false, delayCompletion)
 
